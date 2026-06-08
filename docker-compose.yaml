@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: jobsignal-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: jobsignal-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"       # host access
+      - "29092:29092"     # internal Docker network access
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"   # we create topics explicitly
+      KAFKA_LOG_RETENTION_HOURS: 168             # 7 days
+      KAFKA_MESSAGE_MAX_BYTES: 5242880           # 5 MB max message
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: jobsignal-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: jobsignal-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  # Run topic creation once on startup
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: jobsignal-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      echo 'Creating JobSignal topics...'
+
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+        --topic raw.emails.rejections \
+        --partitions 2 \
+        --replication-factor 1 \
+        --config retention.ms=604800000 \
+        --config compression.type=lz4
+
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+        --topic raw.emails.applications \
+        --partitions 2 \
+        --replication-factor 1 \
+        --config retention.ms=604800000 \
+        --config compression.type=lz4
+
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+        --topic dlq.emails.rejections \
+        --partitions 1 \
+        --replication-factor 1 \
+        --config retention.ms=2592000000
+
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+        --topic dlq.emails.applications \
+        --partitions 1 \
+        --replication-factor 1 \
+        --config retention.ms=2592000000
+
+      echo 'Topics created. Listing all topics:'
+      kafka-topics --bootstrap-server kafka:29092 --list
+      "
+    restart: "no"
