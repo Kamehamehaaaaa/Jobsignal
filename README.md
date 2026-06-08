@@ -1,12 +1,38 @@
+## Architecture
+
+```text
 jobsignal/
-├── config/topics.py          — topic names, partition counts, retention config
-├── schemas/events.py         — canonical message schemas (frozen dataclasses)
+├── config/
+│   └── topics.py
+│
+├── schemas/
+│   └── events.py
+│
 ├── producers/
-│   ├── base_producer.py      — shared Kafka logic (DLQ routing, delivery callbacks)
-│   ├── classifier.py         — lightweight pre-NLP gate (runs in producer)
-│   ├── gmail_producer.py     — IMAP + OAuth2 polling loop
-│   └── outlook_producer.py   — Microsoft Graph API polling loop
-├── admin/create_topics.py    — idempotent topic creation script
-├── tests/test_producers.py   — 15 unit tests (classifier + schemas)
-├── docker/docker-compose.yml — Kafka + ZooKeeper + Kafka UI
+│   ├── base_producer.py
+│   ├── classifier.py
+│   ├── gmail_producer.py
+│   └── outlook_producer.py
+│
+├── admin/
+│   └── create_topics.py
+│
+├── tests/
+│   └── test_producers.py
+│
+├── docker/
+│   └── docker-compose.yml
+│
 └── .env.example
+```
+
+### Key Components
+
+| Component | Purpose |
+|------------|----------|
+| `config/topics.py` | Kafka topic definitions, partitioning strategy, and retention policies |
+| `schemas/events.py` | Immutable event contracts shared across producers and consumers |
+| `producers/` | Email ingestion pipelines for Gmail and Outlook |
+| `admin/create_topics.py` | Idempotent Kafka topic provisioning |
+| `tests/` | Unit tests for event schemas and classification logic |
+| `docker/` | Local Kafka development environment |
