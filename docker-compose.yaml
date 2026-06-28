@@ -11,10 +11,11 @@ services:
     ports:
       - "2181:2181"
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+      test: ["CMD", "zookeeper-shell", "localhost:2181", "ls", "/"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 15s
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1

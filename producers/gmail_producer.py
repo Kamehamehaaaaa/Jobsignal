@@ -37,6 +37,8 @@ GMAIL_IMAP_PORT = 993
 GMAIL_SCOPES = ["https://mail.google.com/"]
  
 DEFAULT_POLL_INTERVAL = 60
+
+MAX_EMAILS = 1000
  
 
 class _HTMLStripper(HTMLParser):
@@ -155,10 +157,14 @@ class GmailProducer(BaseProducer):
             self._connect()
 
     def _fetch_unread(self) -> list[str]:
-        """Return a list of IMAP message UIDs for unread messages."""
+        from datetime import datetime, timedelta
         self._reconnect_if_needed()
-        _, data = self._imap.uid("search", None, "UNSEEN")
+
+        since_date = (datetime.now() - timedelta(days=10)).strftime("%d-%b-%Y")
+        _, data = self._imap.uid("search", None, "UNSEEN", "SINCE", since_date)
         uids = data[0].split() if data[0] else []
+
+        uids = uids[-self.MAX_EMAILS:]
         return [uid.decode() for uid in uids]
  
     def _process_uid(self, uid: str) -> None:
@@ -252,3 +258,25 @@ class GmailProducer(BaseProducer):
                     pass
             self.flush()
  
+
+if __name__ == "__main__":
+    import logging
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO"),
+        format="%(levelname)s %(name)s — %(message)s",
+    )
+
+    producer = GmailProducer(
+        kafka_config={
+            "bootstrap.servers": os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+        },
+        user_email=os.getenv("GMAIL_USER_EMAIL"),
+        credentials_path=os.getenv("GMAIL_CREDENTIALS_PATH", "secrets/gmail_credentials.json"),
+        token_path=os.getenv("GMAIL_TOKEN_PATH", "secrets/gmail_token.json"),
+        poll_interval=int(os.getenv("GMAIL_POLL_INTERVAL", "60")),
+    )
+    producer.run()

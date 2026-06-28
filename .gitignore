@@ -1,0 +1,11 @@
+secrets/
+.env
+checkpoints/
+output/
+.jobsignal/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+models/
+.DS_Store

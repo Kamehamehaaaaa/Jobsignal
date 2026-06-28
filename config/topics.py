@@ -15,7 +15,7 @@ class TopicSpec:
     replication_factor: int
     config: dict
 
-TOPIC_SPECS = list[TopicSpec] = {
+TOPIC_SPECS : list[TopicSpec] = [
     TopicSpec(
         name = TOPIC_REJECTIONS,
         num_partitions = 2,     # for parallelism, throughput and ordering guarantees. 2 consumers can consume.
@@ -54,4 +54,4 @@ TOPIC_SPECS = list[TopicSpec] = {
             "cleanup.policy": "delete",
         },
     ),
-}
+]
