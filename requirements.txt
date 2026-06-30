@@ -1,0 +1,38 @@
+# ── Kafka ─────────────────────────────────────────────────────────────────────
+confluent-kafka>=2.4.0              # Kafka producer/consumer (wraps librdkafka)
+
+# ── Gmail producer ────────────────────────────────────────────────────────────
+google-auth>=2.29.0                 # OAuth2 token management + refresh
+google-auth-oauthlib>=1.2.0         # OAuth2 installed-app + device code flow
+google-auth-httplib2>=0.2.0         # HTTP transport for google-auth
+
+# ── Outlook producer ──────────────────────────────────────────────────────────
+requests>=2.31.0                    # Microsoft Graph API calls
+
+# ── Shared ────────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0                # .env file loading
+
+# ── NLP enricher (spaCy backend) ─────────────────────────────────────────────
+spacy>=3.7.0                        # NER + rule-based enrichment
+# After installing spaCy, also run:
+#   python -m spacy download en_core_web_sm
+
+# ── NLP enricher (DistilBERT backend — only needed if USE_DISTILBERT is set) ─
+transformers>=4.40.0                # HuggingFace DistilBERT pipeline
+torch>=2.2.0                        # PyTorch backend for transformers (CPU is fine)
+# Fine-tuning only (USE_DISTILBERT=finetuned --train):
+datasets>=2.19.0                    # HuggingFace datasets for training loop
+
+# ── Google Sheets sink ────────────────────────────────────────────────────────
+google-api-python-client>=2.128.0   # Sheets API v4
+
+# ── Spark consumer ────────────────────────────────────────────────────────────
+pyspark>=3.5.0                      # Spark Structured Streaming
+# The Kafka connector is fetched automatically by Spark at runtime via:
+#   spark.jars.packages = org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
+# No pip install needed for it.
+
+# ── Dev / test ────────────────────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-cov>=5.0.0
+mlflow>=2.13.0
