@@ -1,5 +1,7 @@
 # JobSignal
 
+![CI](https://github.com/kamehamehaaaaa/JobSignal/actions/workflows/ci.yml/badge.svg)
+
 A real-time job-hunt intelligence pipeline built on Kafka, Spark, and NLP. Monitors Gmail for job-related emails, classifies and enriches them with spaCy (or DistilBERT), and writes structured output to Google Sheets and local files — with full observability and CI/CD.
 
 ---
