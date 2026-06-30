@@ -28,7 +28,7 @@ class TestLogBatchRun:
         mock_start.assert_not_called()
 
     def test_logs_params_and_metrics(self):
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_param") as mock_param, \
              patch("mlflow.log_metric") as mock_metric:
@@ -55,7 +55,7 @@ class TestLogBatchRun:
         assert metric_calls["batch_latency_seconds"] == 2.5
 
     def test_extraction_rates_computed_correctly(self):
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_param"), \
              patch("mlflow.log_metric") as mock_metric:
@@ -75,7 +75,7 @@ class TestLogBatchRun:
         assert abs(metric_calls["role_extraction_rate"] - (2 / 3)) < 1e-6
 
     def test_label_distribution_logged_per_label(self):
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_param"), \
              patch("mlflow.log_metric") as mock_metric:
@@ -97,7 +97,7 @@ class TestLogBatchRun:
     def test_mlflow_failure_does_not_raise(self):
         """Tracking must never crash the pipeline, even if MLflow is broken."""
         with patch(
-            "jobsignal.tracking.mlflow_tracker._ensure_experiment",
+            "tracking.mlflow_tracker._ensure_experiment",
             side_effect=RuntimeError("tracking server down"),
         ):
             # Should not raise
@@ -108,7 +108,7 @@ class TestLogBatchRun:
             )
 
     def test_start_run_failure_does_not_raise(self):
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run", side_effect=RuntimeError("connection refused")):
             log_batch_run(
                 backend="spacy", event_type="rejection",
@@ -117,7 +117,7 @@ class TestLogBatchRun:
             )
 
     def test_throughput_metric_uses_latency(self):
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_param"), \
              patch("mlflow.log_metric") as mock_metric:
@@ -145,7 +145,7 @@ class TestLogModelComparison:
             "spacy":     [{"confidence": 0.7}, {"confidence": 0.8}],
             "zero_shot": [{"confidence": 0.85}, {"confidence": 0.9}],
         }
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_metric") as mock_metric:
 
@@ -162,7 +162,7 @@ class TestLogModelComparison:
 
     def test_skips_empty_backend_results(self):
         backend_results = {"spacy": [], "zero_shot": [{"confidence": 0.9}]}
-        with patch("jobsignal.tracking.mlflow_tracker._ensure_experiment"), \
+        with patch("tracking.mlflow_tracker._ensure_experiment"), \
              patch("mlflow.start_run") as mock_start, \
              patch("mlflow.log_metric") as mock_metric:
 

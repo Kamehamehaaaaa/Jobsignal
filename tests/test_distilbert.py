@@ -21,7 +21,7 @@ class TestDistilBertClassifier:
             })
             clf._zero_shot_pipe = mock_pipe
             # Patch the cached loader
-            with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+            with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                        return_value=mock_pipe):
                 yield clf
         else:
@@ -35,7 +35,7 @@ class TestDistilBertClassifier:
             "labels": ["hard_rejection", "soft_rejection", "unknown"],
             "scores": [0.88, 0.08, 0.04],
         })
-        with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+        with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                    return_value=mock_pipe):
             result = clf._classify_zero_shot("We will not be moving forward.")
         assert result == "hard_rejection"
@@ -48,7 +48,7 @@ class TestDistilBertClassifier:
             "labels": ["hard_rejection", "soft_rejection", "unknown"],
             "scores": [0.55, 0.30, 0.15],   # below 0.9 threshold
         })
-        with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+        with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                    return_value=mock_pipe):
             result = clf._classify_zero_shot("Some ambiguous text.")
         assert result == "unknown"
@@ -58,7 +58,7 @@ class TestDistilBertClassifier:
 
         clf = DistilBertClassifier(mode="zero_shot")
         mock_pipe = MagicMock()
-        with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+        with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                    return_value=mock_pipe):
             result = clf.classify("")
         mock_pipe.assert_not_called()
@@ -69,7 +69,7 @@ class TestDistilBertClassifier:
 
         clf = DistilBertClassifier(mode="zero_shot")
         mock_pipe = MagicMock()
-        with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+        with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                    return_value=mock_pipe):
             result = clf.classify("   \n  ")
         mock_pipe.assert_not_called()
@@ -97,7 +97,7 @@ class TestDistilBertClassifier:
                 "scores": [0.60, 0.25, 0.15],
             }
 
-        with patch("jobsignal.nlp.distilbert_classifier._load_zero_shot_pipeline",
+        with patch("nlp.distilbert_classifier._load_zero_shot_pipeline",
                    return_value=capture_pipe):
             clf.classify(long_text)
 
@@ -170,6 +170,6 @@ class TestEnricherFlag:
             os.environ.pop("USE_DISTILBERT", None)
             m = self._reload_enricher()
 
-            with patch("jobsignal.nlp.distilbert_classifier.DistilBertClassifier") as mock_cls:
+            with patch("nlp.distilbert_classifier.DistilBertClassifier") as mock_cls:
                 m._classify_rejection_type("We will not be moving forward.")
             mock_cls.assert_not_called()
