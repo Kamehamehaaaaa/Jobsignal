@@ -1,12 +1,3 @@
-"""
-JobSignal — tests for DistilBERT classifier and USE_DISTILBERT flag dispatch.
-
-These tests mock the HuggingFace pipeline so they run without
-downloading any model weights — fast, offline, CI-safe.
-
-Run with: pytest tests/test_distilbert.py -v
-"""
-
 import os
 import importlib
 from unittest.mock import MagicMock, patch
@@ -19,7 +10,7 @@ class TestDistilBertClassifier:
 
     def _make_clf(self, mode="zero_shot", pipeline_output=None):
         """Build a classifier with the HuggingFace pipeline mocked out."""
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode=mode)
 
@@ -37,7 +28,7 @@ class TestDistilBertClassifier:
             yield clf
 
     def test_zero_shot_returns_top_label(self):
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier, LABELS
+        from nlp.distilbert_classifier import DistilBertClassifier, LABELS
 
         clf = DistilBertClassifier(mode="zero_shot")
         mock_pipe = MagicMock(return_value={
@@ -50,7 +41,7 @@ class TestDistilBertClassifier:
         assert result == "hard_rejection"
 
     def test_zero_shot_falls_back_to_unknown_below_threshold(self):
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode="zero_shot", confidence_threshold=0.9)
         mock_pipe = MagicMock(return_value={
@@ -63,7 +54,7 @@ class TestDistilBertClassifier:
         assert result == "unknown"
 
     def test_empty_text_returns_unknown_without_calling_pipeline(self):
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode="zero_shot")
         mock_pipe = MagicMock()
@@ -74,7 +65,7 @@ class TestDistilBertClassifier:
         assert result == "unknown"
 
     def test_whitespace_only_returns_unknown(self):
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode="zero_shot")
         mock_pipe = MagicMock()
@@ -85,7 +76,7 @@ class TestDistilBertClassifier:
         assert result == "unknown"
 
     def test_finetuned_falls_back_to_zero_shot_if_model_missing(self):
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode="finetuned", model_path="/nonexistent/path")
         # Should have fallen back to zero_shot
@@ -93,7 +84,7 @@ class TestDistilBertClassifier:
 
     def test_text_truncated_to_400_words(self):
         """Pipeline should never receive more than 400 words."""
-        from jobsignal.nlp.distilbert_classifier import DistilBertClassifier
+        from nlp.distilbert_classifier import DistilBertClassifier
 
         clf = DistilBertClassifier(mode="zero_shot")
         long_text = "word " * 600   # 600 words
@@ -125,7 +116,7 @@ class TestEnricherFlag:
     """
 
     def _reload_enricher(self):
-        import jobsignal.nlp.enricher as m
+        import nlp.enricher as m
         importlib.reload(m)
         return m
 

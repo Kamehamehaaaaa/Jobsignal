@@ -41,6 +41,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
@@ -54,10 +55,15 @@ from config.topics import TOPIC_REJECTIONS, TOPIC_APPLICATIONS
 from nlp.enricher import enrich
 from sinks.local_sink import LocalSink
 from sinks.sheets_sink import SheetsSink
+from tracking.mlflow_tracker import log_batch_run
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
+
+# Label used in MLflow run tracking — mirrors the USE_DISTILBERT flag in nlp/enricher.py
+_distilbert_mode = os.getenv("USE_DISTILBERT", "").strip().lower()
+_DISTILBERT_MODE_LABEL = _distilbert_mode if _distilbert_mode in ("zero_shot", "finetuned") else "spacy"
 
 
 # ── Spark session ─────────────────────────────────────────────────────────────
@@ -70,7 +76,7 @@ def _build_spark() -> SparkSession:
         .config("spark.sql.shuffle.partitions", "4")   # keep low for local dev
         .config(
             "spark.jars.packages",
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3",
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0",
         )
         .getOrCreate()
     )
@@ -183,6 +189,7 @@ def _process_rejections_batch(
     if count == 0:
         return
 
+    batch_start = time.perf_counter()
     logger.info("Processing rejection batch | batch_id=%d rows=%d", batch_id, count)
 
     # Add enriched columns via UDF
@@ -202,7 +209,8 @@ def _process_rejections_batch(
         F.col("nlp.confidence").alias("nlp_confidence"),
     ).drop("nlp")
 
-    # Write each row to both sinks
+    # Write each row to both sinks, collecting tracking data as we go
+    mlflow_rows: list[dict] = []
     for row in enriched_df.collect():
         event = row.asDict()
         # Build a lightweight enriched object for the sink APIs
@@ -220,6 +228,21 @@ def _process_rejections_batch(
             except Exception as exc:
                 logger.error("Sheets write failed for rejection: %s", exc)
 
+        mlflow_rows.append({
+            "company_name":   enriched.company_name,
+            "role_title":     enriched.role_title,
+            "rejection_type": enriched.rejection_type,
+            "confidence":     enriched.confidence,
+        })
+
+    batch_latency = time.perf_counter() - batch_start
+    log_batch_run(
+        backend=_DISTILBERT_MODE_LABEL,
+        event_type="rejection",
+        enriched_rows=mlflow_rows,
+        batch_latency_seconds=batch_latency,
+    )
+
 
 def _process_applications_batch(
     batch_df: DataFrame,
@@ -234,6 +257,7 @@ def _process_applications_batch(
     if count == 0:
         return
 
+    batch_start = time.perf_counter()
     logger.info("Processing application batch | batch_id=%d rows=%d", batch_id, count)
 
     enriched_df = batch_df.withColumn(
@@ -251,6 +275,7 @@ def _process_applications_batch(
         F.col("nlp.confidence").alias("nlp_confidence"),
     ).drop("nlp")
 
+    mlflow_rows: list[dict] = []
     for row in enriched_df.collect():
         event = row.asDict()
         enriched = _RowEnriched(
@@ -266,6 +291,21 @@ def _process_applications_batch(
                 sheets_sink.write_application(event, enriched)
             except Exception as exc:
                 logger.error("Sheets write failed for application: %s", exc)
+
+        mlflow_rows.append({
+            "company_name": enriched.company_name,
+            "role_title":   enriched.role_title,
+            "rejection_type": "n/a",
+            "confidence":   enriched.confidence,
+        })
+
+    batch_latency = time.perf_counter() - batch_start
+    log_batch_run(
+        backend=_DISTILBERT_MODE_LABEL,
+        event_type="application",
+        enriched_rows=mlflow_rows,
+        batch_latency_seconds=batch_latency,
+    )
 
 
 # ── Simple namespace to pass enriched fields to sinks ────────────────────────

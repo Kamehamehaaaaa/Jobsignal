@@ -1,23 +1,16 @@
-"""
-JobSignal — tests for NLP enricher and local sink.
-
-Run with: pytest tests/ -v
-No Kafka or Spark needed — these test the enrichment logic in isolation.
-"""
-
 import json
 import os
 import tempfile
 import pytest
 
-from jobsignal.nlp.enricher import (
+from nlp.enricher import (
     enrich,
     _classify_rejection_type,
     _extract_role,
     _company_from_email,
     _infer_job_board,
 )
-from jobsignal.sinks.local_sink import LocalSink
+from sinks.local_sink import LocalSink
 
 
 # ── Rejection type classifier ─────────────────────────────────────────────────
